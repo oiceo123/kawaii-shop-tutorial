@@ -40,6 +40,10 @@ func (s *server) Start() {
 	// Middlewares
 
 	// Modules
+	v1 := s.app.Group("v1")
+	modules := InitModule(v1, s)
+
+	modules.MonitorModule()
 
 	// Gracful Shutdown
 	c := make(chan os.Signal, 1)
