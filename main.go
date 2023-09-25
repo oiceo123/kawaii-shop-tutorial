@@ -1,8 +1,9 @@
 package main
 
 import (
-	"fmt"
 	"os"
+
+	"github.com/oiceo123/kawaii-shop-tutorial/modules/servers"
 
 	"github.com/oiceo123/kawaii-shop-tutorial/config"
 	"github.com/oiceo123/kawaii-shop-tutorial/pkg/databases"
@@ -18,7 +19,9 @@ func envPath() string {
 
 func main() {
 	cfg := config.LoadConfig(envPath())
+
 	db := databases.DbConnnect(cfg.Db())
 	defer db.Close()
-	fmt.Println(db)
+
+	servers.NewServer(cfg, db).Start()
 }
