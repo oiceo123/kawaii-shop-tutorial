@@ -20,8 +20,8 @@ type Response struct {
 }
 
 type ErrorResponse struct {
-	TraceId string `json: "trace_id"`
-	msg     string `json: "message"`
+	TraceId string `json:"trace_id"`
+	Msg     string `json:"message"`
 }
 
 func NewResponse(c *fiber.Ctx) IResponse {
@@ -33,7 +33,7 @@ func NewResponse(c *fiber.Ctx) IResponse {
 func (r *Response) Success(code int, data any) IResponse {
 	r.StatusCode = code
 	r.Data = data
-	logger.InitKawaiiLogger(r.Context, &r.Data).Print().Save()
+	logger.InitKawaiiLogger(r.Context, &r.Data, code).Print().Save()
 	return r
 }
 
@@ -41,10 +41,10 @@ func (r *Response) Error(code int, traceId, msg string) IResponse {
 	r.StatusCode = code
 	r.ErrorRes = &ErrorResponse{
 		TraceId: traceId,
-		msg:     msg,
+		Msg:     msg,
 	}
 	r.IsError = true
-	logger.InitKawaiiLogger(r.Context, &r.ErrorRes).Print().Save()
+	logger.InitKawaiiLogger(r.Context, &r.ErrorRes, code).Print().Save()
 	return r
 }
 
