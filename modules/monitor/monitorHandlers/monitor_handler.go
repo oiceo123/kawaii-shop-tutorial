@@ -3,6 +3,7 @@ package monitorHandlers
 import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/oiceo123/kawaii-shop-tutorial/config"
+	"github.com/oiceo123/kawaii-shop-tutorial/modules/entities"
 	"github.com/oiceo123/kawaii-shop-tutorial/modules/monitor"
 )
 
@@ -25,5 +26,5 @@ func (h *monitorHandler) HealthCheck(c *fiber.Ctx) error {
 		Name:    h.cfg.App().Name(),
 		Version: h.cfg.App().Version(),
 	}
-	return c.Status(fiber.StatusOK).JSON(res)
+	return entities.NewResponse(c).Success(fiber.StatusOK, res).Res()
 }
