@@ -6,10 +6,14 @@ import (
 	"github.com/oiceo123/kawaii-shop-tutorial/modules/middlewares/middlewaresRepositories"
 	"github.com/oiceo123/kawaii-shop-tutorial/modules/middlewares/middlewaresUsecases"
 	"github.com/oiceo123/kawaii-shop-tutorial/modules/monitor/monitorHandlers"
+	"github.com/oiceo123/kawaii-shop-tutorial/modules/users/usersHandlers"
+	"github.com/oiceo123/kawaii-shop-tutorial/modules/users/usersRepositories"
+	"github.com/oiceo123/kawaii-shop-tutorial/modules/users/usersUsecases"
 )
 
 type IModuleFactory interface {
 	MonitorModule()
+	UsersModule()
 }
 
 type moduleFactory struct {
@@ -36,4 +40,14 @@ func (m *moduleFactory) MonitorModule() {
 	handler := monitorHandlers.MonitorHandler(m.server.cfg)
 
 	m.router.Get("/", handler.HealthCheck)
+}
+
+func (m *moduleFactory) UsersModule() {
+	repository := usersRepositories.UsersRepository(m.server.db)
+	usecase := usersUsecases.UsersUsecase(m.server.cfg, repository)
+	handler := usersHandlers.UsersHandler(m.server.cfg, usecase)
+
+	router := m.router.Group("/users")
+
+	router.Post("/signup", handler.SignUpCustomer)
 }
