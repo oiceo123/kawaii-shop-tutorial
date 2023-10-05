@@ -6,6 +6,7 @@ import (
 	"github.com/oiceo123/kawaii-shop-tutorial/config"
 	"github.com/oiceo123/kawaii-shop-tutorial/modules/users"
 	"github.com/oiceo123/kawaii-shop-tutorial/modules/users/usersRepositories"
+	"github.com/oiceo123/kawaii-shop-tutorial/pkg/auth"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -53,6 +54,17 @@ func (u *usersUsecase) GetPassport(req *users.UserCredential) (*users.UserPasspo
 		return nil, fmt.Errorf("password is invalid")
 	}
 
+	// Sign token
+	accessToken, err := auth.NewKawaiiAuth(auth.Access, u.cfg.Jwt(), &users.UserClaims{
+		Id:     user.Id,
+		RoleId: user.RoleId,
+	})
+
+	refreshToken, err := auth.NewKawaiiAuth(auth.Refresh, u.cfg.Jwt(), &users.UserClaims{
+		Id:     user.Id,
+		RoleId: user.RoleId,
+	})
+
 	// Set passport
 	passport := &users.UserPassport{
 		User: &users.User{
@@ -61,7 +73,14 @@ func (u *usersUsecase) GetPassport(req *users.UserCredential) (*users.UserPasspo
 			Username: user.Username,
 			RoleId:   user.RoleId,
 		},
-		Token: nil,
+		Token: &users.UserToken{
+			AccessToken:  accessToken.SignToken(),
+			RefreshToken: refreshToken.SignToken(),
+		},
+	}
+
+	if err := u.usersRepository.InsertOauth(passport); err != nil {
+		return nil, err
 	}
 	return passport, nil
 }

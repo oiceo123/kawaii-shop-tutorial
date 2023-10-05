@@ -1,0 +1,93 @@
+package auth
+
+import (
+	"fmt"
+	"math"
+	"time"
+
+	"github.com/golang-jwt/jwt/v5"
+	"github.com/oiceo123/kawaii-shop-tutorial/config"
+	"github.com/oiceo123/kawaii-shop-tutorial/modules/users"
+)
+
+type TokenType string
+
+const (
+	Access  TokenType = "access"
+	Refresh TokenType = "refresh"
+	Admin   TokenType = "admin"
+	ApiKey  TokenType = "apikey"
+)
+
+type kawaiiAuth struct {
+	mapClaims *kawaiiMapClaims // mapClaims = payload
+	cfg       config.IJwtConfig
+}
+
+type kawaiiMapClaims struct {
+	Claims *users.UserClaims `json:"claims"`
+	jwt.RegisteredClaims
+}
+
+type IkawaiiAuth interface {
+	SignToken() string
+}
+
+func jwtTimeDuration(t int) *jwt.NumericDate {
+	return jwt.NewNumericDate(time.Now().Add(time.Duration(int64(t) * int64(math.Pow10(9)))))
+}
+
+func jwtTimeRepeatAdapter(t int64) *jwt.NumericDate {
+	return jwt.NewNumericDate(time.Unix(t, 0))
+}
+
+func (a *kawaiiAuth) SignToken() string {
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, a.mapClaims)
+	ss, _ := token.SignedString(a.cfg.SecretKey())
+	return ss
+}
+
+func NewKawaiiAuth(tokenType TokenType, cfg config.IJwtConfig, claims *users.UserClaims) (IkawaiiAuth, error) {
+	switch tokenType {
+	case Access:
+		return newAccessToken(cfg, claims), nil
+	case Refresh:
+		return newRefreshToken(cfg, claims), nil
+	default:
+		return nil, fmt.Errorf("unknown token type")
+	}
+}
+
+func newAccessToken(cfg config.IJwtConfig, claims *users.UserClaims) IkawaiiAuth {
+	return &kawaiiAuth{
+		cfg: cfg,
+		mapClaims: &kawaiiMapClaims{
+			Claims: claims,
+			RegisteredClaims: jwt.RegisteredClaims{
+				Issuer:    "kawaiishop-api",                       // เว็บหรือบริษัทเจ้าของ token
+				Subject:   "access-token",                         // subject ของ token
+				Audience:  []string{"customer", "admin"},          // ผู้รับ token
+				ExpiresAt: jwtTimeDuration(cfg.AccessExpiresAt()), // เวลาหมดอายุของ token
+				NotBefore: jwt.NewNumericDate(time.Now()),         // เป็นเวลาที่บอกว่า token จะเริ่มใช้งานได้เมื่อไหร่
+				IssuedAt:  jwt.NewNumericDate(time.Now()),         // ใช้เก็บเวลาที่ token นี้เกิดปัญหา
+			},
+		},
+	}
+}
+
+func newRefreshToken(cfg config.IJwtConfig, claims *users.UserClaims) IkawaiiAuth {
+	return &kawaiiAuth{
+		cfg: cfg,
+		mapClaims: &kawaiiMapClaims{
+			Claims: claims,
+			RegisteredClaims: jwt.RegisteredClaims{
+				Issuer:    "kawaiishop-api",                        // เว็บหรือบริษัทเจ้าของ token
+				Subject:   "refresh-token",                         // subject ของ token
+				Audience:  []string{"customer", "admin"},           // ผู้รับ token
+				ExpiresAt: jwtTimeDuration(cfg.RefreshExpiresAt()), // เวลาหมดอายุของ token
+				NotBefore: jwt.NewNumericDate(time.Now()),          // เป็นเวลาที่บอกว่า token จะเริ่มใช้งานได้เมื่อไหร่
+				IssuedAt:  jwt.NewNumericDate(time.Now()),          // ใช้เก็บเวลาที่ token นี้เกิดปัญหา
+			},
+		},
+	}
+}
