@@ -17,6 +17,7 @@ type IUsersRepository interface {
 	FindOneOauth(refreshToken string) (*users.Oauth, error)
 	UpdateOauth(req *users.UserToken) error
 	GetProfile(userId string) (*users.User, error)
+	DeleteOauth(oauthId string) error
 }
 
 type userRepository struct {
@@ -143,4 +144,25 @@ func (r *userRepository) GetProfile(userId string) (*users.User, error) {
 		return nil, fmt.Errorf("get user failed: %v", err)
 	}
 	return profile, nil
+}
+
+func (r *userRepository) DeleteOauth(oauthId string) error {
+	query := `DELETE FROM "oauth" WHERE "id" = $1;`
+
+	result, err := r.db.ExecContext(context.Background(), query, oauthId)
+	if err != nil {
+		return fmt.Errorf("delete oauth failed: %v", err)
+	}
+
+	rowCount, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("failed to retrieve affected rows: %v", err)
+	}
+
+	if rowCount == 0 {
+		// No rows were deleted
+		return fmt.Errorf("no row were deleted")
+	}
+
+	return nil
 }
