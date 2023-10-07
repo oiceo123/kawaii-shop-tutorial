@@ -13,6 +13,7 @@ import (
 type IUsersUsecase interface {
 	InsertCustomer(req *users.UserRegisterReq) (*users.UserPassport, error)
 	GetPassport(req *users.UserCredential) (*users.UserPassport, error)
+	RefreshPassport(req *users.UserRefreshCredentail) (*users.UserPassport, error)
 }
 
 type usersUsecase struct {
@@ -80,6 +81,59 @@ func (u *usersUsecase) GetPassport(req *users.UserCredential) (*users.UserPasspo
 	}
 
 	if err := u.usersRepository.InsertOauth(passport); err != nil {
+		return nil, err
+	}
+	return passport, nil
+}
+
+func (u *usersUsecase) RefreshPassport(req *users.UserRefreshCredentail) (*users.UserPassport, error) {
+	// Parse token
+	claims, err := auth.ParseToken(u.cfg.Jwt(), req.RefreshToken)
+	if err != nil {
+		return nil, err
+	}
+
+	// Check oauth
+	oauth, err := u.usersRepository.FindOneOauth(req.RefreshToken)
+	if err != nil {
+		return nil, err
+	}
+
+	// Find profile
+	profile, err := u.usersRepository.GetProfile(oauth.UserId)
+	if err != nil {
+		return nil, err
+	}
+
+	newClaims := &users.UserClaims{
+		Id:     profile.Id,
+		RoleId: profile.RoleId,
+	}
+
+	accessToken, err := auth.NewKawaiiAuth(
+		auth.Access,
+		u.cfg.Jwt(),
+		newClaims,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	refreshToken := auth.RepeatToken(
+		u.cfg.Jwt(),
+		newClaims,
+		claims.ExpiresAt.Unix(),
+	)
+
+	passport := &users.UserPassport{
+		User: profile,
+		Token: &users.UserToken{
+			Id:           oauth.Id,
+			AccessToken:  accessToken.SignToken(),
+			RefreshToken: refreshToken,
+		},
+	}
+	if err := u.usersRepository.UpdateOauth(passport.Token); err != nil {
 		return nil, err
 	}
 	return passport, nil
