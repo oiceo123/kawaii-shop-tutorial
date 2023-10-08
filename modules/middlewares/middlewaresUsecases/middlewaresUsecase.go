@@ -3,6 +3,7 @@ package middlewaresUsecases
 import "github.com/oiceo123/kawaii-shop-tutorial/modules/middlewares/middlewaresRepositories"
 
 type IMiddlewaresUsecase interface {
+	FindAccessToken(userId, accessToken string) bool
 }
 
 type middlewaresUsecase struct {
@@ -13,4 +14,8 @@ func MiddlewaresUsecase(middlewaresRepository middlewaresRepositories.IMiddlewar
 	return &middlewaresUsecase{
 		middlewaresRepository: middlewaresRepository,
 	}
+}
+
+func (u *middlewaresUsecase) FindAccessToken(userId, accessToken string) bool {
+	return u.middlewaresRepository.FindAccessToken(userId, accessToken)
 }
