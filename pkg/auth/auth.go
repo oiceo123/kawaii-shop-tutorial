@@ -64,7 +64,7 @@ func (a *kawaiiAdmin) SignToken() string {
 
 func ParseToken(cfg config.IJwtConfig, tokenString string) (*kawaiiMapClaims, error) {
 	token, err := jwt.ParseWithClaims(tokenString, &kawaiiMapClaims{}, func(t *jwt.Token) (interface{}, error) {
-		// วิธีแปลงจาก type any เป็น type ตามที่เราต้องการให้เติม .(type ที่ต้องการจะเปลี่ยน)
+		// วิธีแปลงจาก type any เป็น type ตามที่เราต้องการให้เติม .(*type ที่ต้องการจะเปลี่ยน)
 		if _, ok := t.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, fmt.Errorf("signing method is invalid")
 		}
@@ -81,7 +81,7 @@ func ParseToken(cfg config.IJwtConfig, tokenString string) (*kawaiiMapClaims, er
 		}
 	}
 
-	// วิธีแปลงจาก type any เป็น type ตามที่เราต้องการให้เติม .(type ที่ต้องการจะเปลี่ยน)
+	// วิธีแปลงจาก type any เป็น type ตามที่เราต้องการให้เติม .(*type ที่ต้องการจะเปลี่ยน)
 	if claims, ok := token.Claims.(*kawaiiMapClaims); ok {
 		return claims, nil
 	} else {
