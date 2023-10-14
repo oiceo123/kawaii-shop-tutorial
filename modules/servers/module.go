@@ -2,6 +2,9 @@ package servers
 
 import (
 	"github.com/gofiber/fiber/v2"
+	"github.com/oiceo123/kawaii-shop-tutorial/modules/appinfo/appinfoHandlers"
+	"github.com/oiceo123/kawaii-shop-tutorial/modules/appinfo/appinfoRepositories"
+	"github.com/oiceo123/kawaii-shop-tutorial/modules/appinfo/appinfoUsecases"
 	"github.com/oiceo123/kawaii-shop-tutorial/modules/middlewares/middlewaresHandlers"
 	"github.com/oiceo123/kawaii-shop-tutorial/modules/middlewares/middlewaresRepositories"
 	"github.com/oiceo123/kawaii-shop-tutorial/modules/middlewares/middlewaresUsecases"
@@ -61,4 +64,15 @@ func (m *moduleFactory) UsersModule() {
 	// Initial admin ขึ้นมา 1 คน ใน Db (Insert ใน SQL)
 	// Generate Admin Key
 	// ทุกครั้งที่ทำการสมัคร Admin เพิ่ม ให้ส่ง Admin Token มาด้วยทุกครั้ง ผ่าน Middleware
+}
+
+func (m *moduleFactory) AppinfoModule() {
+	repository := appinfoRepositories.AppinfoRepository(m.server.db)
+	usecase := appinfoUsecases.AppinfoUsecase(repository)
+	handler := appinfoHandlers.AppinfoHandler(m.server.cfg, usecase)
+
+	router := m.router.Group("/appinfo")
+
+	_ = handler
+	_ = router
 }
