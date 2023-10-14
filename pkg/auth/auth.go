@@ -29,6 +29,10 @@ type kawaiiAdmin struct {
 	*kawaiiAuth
 }
 
+type kawaiiApiKey struct {
+	*kawaiiAuth
+}
+
 type kawaiiMapClaims struct {
 	Claims *users.UserClaims `json:"claims"`
 	jwt.RegisteredClaims
@@ -39,6 +43,10 @@ type IkawaiiAuth interface {
 }
 
 type IkawaiiAdmin interface {
+	SignToken() string
+}
+
+type IkawaiiApiKey interface {
 	SignToken() string
 }
 
@@ -59,6 +67,12 @@ func (a *kawaiiAuth) SignToken() string {
 func (a *kawaiiAdmin) SignToken() string {
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, a.mapClaims)
 	ss, _ := token.SignedString(a.cfg.AdminKey())
+	return ss
+}
+
+func (a *kawaiiApiKey) SignToken() string {
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, a.mapClaims)
+	ss, _ := token.SignedString(a.cfg.ApiKey())
 	return ss
 }
 
@@ -116,6 +130,33 @@ func ParseAdminToken(cfg config.IJwtConfig, tokenString string) (*kawaiiMapClaim
 	}
 }
 
+func ParseApiKey(cfg config.IJwtConfig, tokenString string) (*kawaiiMapClaims, error) {
+	token, err := jwt.ParseWithClaims(tokenString, &kawaiiMapClaims{}, func(t *jwt.Token) (interface{}, error) {
+		// วิธีแปลงจาก type any เป็น type ตามที่เราต้องการให้เติม .(type ที่ต้องการจะเปลี่ยน)
+		if _, ok := t.Method.(*jwt.SigningMethodHMAC); !ok {
+			return nil, fmt.Errorf("signing method is invalid")
+		}
+		return cfg.ApiKey(), nil
+	})
+
+	if err != nil {
+		if errors.Is(err, jwt.ErrTokenMalformed) {
+			return nil, fmt.Errorf("token format is invalid")
+		} else if errors.Is(err, jwt.ErrTokenExpired) {
+			return nil, fmt.Errorf("token had expired")
+		} else {
+			return nil, fmt.Errorf("parse token failed: %v", err)
+		}
+	}
+
+	// วิธีแปลงจาก type any เป็น type ตามที่เราต้องการให้เติม .(type ที่ต้องการจะเปลี่ยน)
+	if claims, ok := token.Claims.(*kawaiiMapClaims); ok {
+		return claims, nil
+	} else {
+		return nil, fmt.Errorf("claims type is invalid")
+	}
+}
+
 func RepeatToken(cfg config.IJwtConfig, claims *users.UserClaims, exp int64) string {
 	obj := &kawaiiAuth{
 		cfg: cfg,
@@ -142,6 +183,8 @@ func NewKawaiiAuth(tokenType TokenType, cfg config.IJwtConfig, claims *users.Use
 		return newRefreshToken(cfg, claims), nil
 	case Admin:
 		return newAdminToken(cfg), nil
+	case ApiKey:
+		return newApiKey(cfg), nil
 	default:
 		return nil, fmt.Errorf("unknown token type")
 	}
@@ -194,6 +237,25 @@ func newAdminToken(cfg config.IJwtConfig) IkawaiiAuth {
 					ExpiresAt: jwtTimeDuration(300),           // เวลาหมดอายุของ token
 					NotBefore: jwt.NewNumericDate(time.Now()), // เป็นเวลาที่บอกว่า token จะเริ่มใช้งานได้เมื่อไหร่
 					IssuedAt:  jwt.NewNumericDate(time.Now()), // ใช้เก็บเวลาที่ token นี้เกิดปัญหา
+				},
+			},
+		},
+	}
+}
+
+func newApiKey(cfg config.IJwtConfig) IkawaiiAuth {
+	return &kawaiiApiKey{
+		kawaiiAuth: &kawaiiAuth{
+			cfg: cfg,
+			mapClaims: &kawaiiMapClaims{
+				Claims: nil,
+				RegisteredClaims: jwt.RegisteredClaims{
+					Issuer:    "kawaiishop-api",                                // เว็บหรือบริษัทเจ้าของ token
+					Subject:   "api-key",                                       // subject ของ token
+					Audience:  []string{"admin", "customer"},                   // ผู้รับ token
+					ExpiresAt: jwt.NewNumericDate(time.Now().AddDate(2, 0, 0)), // เวลาหมดอายุของ token
+					NotBefore: jwt.NewNumericDate(time.Now()),                  // เป็นเวลาที่บอกว่า token จะเริ่มใช้งานได้เมื่อไหร่
+					IssuedAt:  jwt.NewNumericDate(time.Now()),                  // ใช้เก็บเวลาที่ token นี้เกิดปัญหา
 				},
 			},
 		},

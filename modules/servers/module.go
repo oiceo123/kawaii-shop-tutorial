@@ -17,6 +17,7 @@ import (
 type IModuleFactory interface {
 	MonitorModule()
 	UsersModule()
+	AppinfoModule()
 }
 
 type moduleFactory struct {
@@ -52,11 +53,11 @@ func (m *moduleFactory) UsersModule() {
 
 	router := m.router.Group("/users")
 
-	router.Post("/signup", handler.SignUpCustomer)
-	router.Post("/signin", handler.SignIn)
-	router.Post("/refresh", handler.RefreshPassport)
-	router.Post("/signout", handler.SignOut)
-	router.Post("/signup-admin", handler.SignUpAdmin)
+	router.Post("/signup", m.middlewares.ApiKeyAuth(), handler.SignUpCustomer)
+	router.Post("/signin", m.middlewares.ApiKeyAuth(), handler.SignIn)
+	router.Post("/refresh", m.middlewares.ApiKeyAuth(), handler.RefreshPassport)
+	router.Post("/signout", m.middlewares.ApiKeyAuth(), handler.SignOut)
+	router.Post("/signup-admin", m.middlewares.JwtAuth(), m.middlewares.Authorize(2), handler.SignUpAdmin)
 
 	router.Get("/:user_id", m.middlewares.JwtAuth(), m.middlewares.ParamsCheck(), handler.GetUserProfile)
 	router.Get("/admin/secret", m.middlewares.JwtAuth(), m.middlewares.Authorize(2), handler.GenerateAdminToken)
@@ -73,6 +74,5 @@ func (m *moduleFactory) AppinfoModule() {
 
 	router := m.router.Group("/appinfo")
 
-	_ = handler
-	_ = router
+	router.Get("/apikey", m.middlewares.JwtAuth(), m.middlewares.Authorize(2), handler.GenerateApiKey)
 }

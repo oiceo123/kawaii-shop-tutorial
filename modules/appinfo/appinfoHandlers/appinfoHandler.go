@@ -1,11 +1,21 @@
 package appinfoHandlers
 
 import (
+	"github.com/gofiber/fiber/v2"
 	"github.com/oiceo123/kawaii-shop-tutorial/config"
 	"github.com/oiceo123/kawaii-shop-tutorial/modules/appinfo/appinfoUsecases"
+	"github.com/oiceo123/kawaii-shop-tutorial/modules/entities"
+	"github.com/oiceo123/kawaii-shop-tutorial/pkg/auth"
+)
+
+type appinfoHandlerErrCode string
+
+const (
+	genertaeApiKeyErr appinfoHandlerErrCode = "appinfo-001"
 )
 
 type IAppinfoHandler interface {
+	GenerateApiKey(c *fiber.Ctx) error
 }
 
 type appinfoHandler struct {
@@ -18,4 +28,28 @@ func AppinfoHandler(cfg config.IConfig, appinfoUsecases appinfoUsecases.IAppinfo
 		cfg:             cfg,
 		appinfoUsecases: appinfoUsecases,
 	}
+}
+
+func (h *appinfoHandler) GenerateApiKey(c *fiber.Ctx) error {
+	apiKey, err := auth.NewKawaiiAuth(
+		auth.ApiKey,
+		h.cfg.Jwt(),
+		nil,
+	)
+	if err != nil {
+		return entities.NewResponse(c).Error(
+			fiber.ErrInternalServerError.Code,
+			string(genertaeApiKeyErr),
+			err.Error(),
+		).Res()
+	}
+
+	return entities.NewResponse(c).Success(
+		fiber.StatusOK,
+		&struct {
+			Key string `json:"key"`
+		}{
+			Key: apiKey.SignToken(),
+		},
+	).Res()
 }
