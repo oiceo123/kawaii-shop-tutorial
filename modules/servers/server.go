@@ -3,6 +3,7 @@ package servers
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 	"os"
 	"os/signal"
 
@@ -62,6 +63,9 @@ func (s *server) Start() {
 	}()
 
 	// Listen to host:port
-	fmt.Printf("server is starting on %v", s.cfg.App().Url())
-	s.app.Listen(s.cfg.App().Url())
+	/* fmt.Printf("server is starting on %v", s.cfg.App().Url()) */
+	if err := s.app.Listen(s.cfg.App().Url()); err != nil {
+		log.Panic(err)
+	}
+	fmt.Println("Running cleanup tasks...")
 }
