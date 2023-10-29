@@ -56,7 +56,7 @@ func LoadConfig(path string) IConfig {
 				}
 				return f
 			}(),
-			gcpbucket: envMap["APP_GCP_LIMIT"],
+			gcpbucket: envMap["APP_GCP_BUCKET"],
 		},
 		db: &db{
 			host: envMap["DB_HOST"],
