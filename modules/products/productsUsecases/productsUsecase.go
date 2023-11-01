@@ -1,12 +1,16 @@
 package productsUsecases
 
 import (
+	"math"
+
+	"github.com/oiceo123/kawaii-shop-tutorial/modules/entities"
 	"github.com/oiceo123/kawaii-shop-tutorial/modules/products"
 	"github.com/oiceo123/kawaii-shop-tutorial/modules/products/productsRepositories"
 )
 
 type IProductsUsecase interface {
 	FindOneProduct(productId string) (*products.Product, error)
+	FindProducts(req *products.ProductFilter) *entities.PaginateRes
 }
 
 type productsUsecase struct {
@@ -25,4 +29,16 @@ func (u *productsUsecase) FindOneProduct(productId string) (*products.Product, e
 		return nil, err
 	}
 	return product, nil
+}
+
+func (u productsUsecase) FindProducts(req *products.ProductFilter) *entities.PaginateRes {
+	products, count := u.productsRepository.FindProducts(req)
+
+	return &entities.PaginateRes{
+		Data:      products,
+		Page:      req.Page,
+		Limit:     req.Limit,
+		TotalItem: count,
+		TotalPage: int(math.Ceil(float64(count) / float64(req.Limit))),
+	}
 }

@@ -7,6 +7,7 @@ import (
 	"github.com/oiceo123/kawaii-shop-tutorial/config"
 	"github.com/oiceo123/kawaii-shop-tutorial/modules/entities"
 	"github.com/oiceo123/kawaii-shop-tutorial/modules/files/filesUsecases"
+	"github.com/oiceo123/kawaii-shop-tutorial/modules/products"
 	"github.com/oiceo123/kawaii-shop-tutorial/modules/products/productsUsecases"
 )
 
@@ -14,10 +15,12 @@ type productsHandlerErrCode string
 
 const (
 	findOneProductErr productsHandlerErrCode = "product-001"
+	findProductsErr   productsHandlerErrCode = "product-002"
 )
 
 type IProductsHandler interface {
 	FindOneProduct(c *fiber.Ctx) error
+	FindProducts(c *fiber.Ctx) error
 }
 
 type productsHandler struct {
@@ -46,4 +49,35 @@ func (h *productsHandler) FindOneProduct(c *fiber.Ctx) error {
 		).Res()
 	}
 	return entities.NewResponse(c).Success(fiber.StatusOK, product).Res()
+}
+
+func (h *productsHandler) FindProducts(c *fiber.Ctx) error {
+	req := &products.ProductFilter{
+		PaginationReq: &entities.PaginationReq{},
+		SortReq:       &entities.SortReq{},
+	}
+
+	if err := c.QueryParser(req); err != nil {
+		return entities.NewResponse(c).Error(
+			fiber.ErrBadRequest.Code,
+			string(findProductsErr),
+			err.Error(),
+		).Res()
+	}
+
+	if req.Page < 1 {
+		req.Page = 1
+	}
+	if req.Limit < 5 {
+		req.Limit = 5
+	}
+	if req.OrderBy == "" {
+		req.OrderBy = "title"
+	}
+	if req.Sort == "" {
+		req.Sort = "ASC"
+	}
+
+	products := h.productsUsecase.FindProducts(req)
+	return entities.NewResponse(c).Success(fiber.StatusOK, products).Res()
 }

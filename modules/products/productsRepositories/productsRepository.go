@@ -9,10 +9,12 @@ import (
 	"github.com/oiceo123/kawaii-shop-tutorial/modules/entities"
 	"github.com/oiceo123/kawaii-shop-tutorial/modules/files/filesUsecases"
 	"github.com/oiceo123/kawaii-shop-tutorial/modules/products"
+	"github.com/oiceo123/kawaii-shop-tutorial/modules/products/productsPatterns"
 )
 
 type IProductsRepository interface {
 	FindOneProduct(productId string) (*products.Product, error)
+	FindProducts(req *products.ProductFilter) ([]*products.Product, int)
 }
 
 type productsRepository struct {
@@ -85,4 +87,13 @@ func (r *productsRepository) FindOneProduct(productId string) (*products.Product
 	}
 
 	return product, nil
+}
+
+func (r *productsRepository) FindProducts(req *products.ProductFilter) ([]*products.Product, int) {
+	builder := productsPatterns.FindProductBuilder(r.db, req)
+	engineer := productsPatterns.FindProductEngineer(builder)
+
+	result := engineer.FindProduct().Result()
+	count := engineer.CountProduct().Count()
+	return result, count
 }
