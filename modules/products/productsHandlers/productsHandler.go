@@ -5,6 +5,7 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/oiceo123/kawaii-shop-tutorial/config"
+	"github.com/oiceo123/kawaii-shop-tutorial/modules/appinfo"
 	"github.com/oiceo123/kawaii-shop-tutorial/modules/entities"
 	"github.com/oiceo123/kawaii-shop-tutorial/modules/files/filesUsecases"
 	"github.com/oiceo123/kawaii-shop-tutorial/modules/products"
@@ -16,11 +17,13 @@ type productsHandlerErrCode string
 const (
 	findOneProductErr productsHandlerErrCode = "product-001"
 	findProductsErr   productsHandlerErrCode = "product-002"
+	insertProductsErr productsHandlerErrCode = "product-003"
 )
 
 type IProductsHandler interface {
 	FindOneProduct(c *fiber.Ctx) error
 	FindProducts(c *fiber.Ctx) error
+	AddProduct(c *fiber.Ctx) error
 }
 
 type productsHandler struct {
@@ -80,4 +83,44 @@ func (h *productsHandler) FindProducts(c *fiber.Ctx) error {
 
 	products := h.productsUsecase.FindProducts(req)
 	return entities.NewResponse(c).Success(fiber.StatusOK, products).Res()
+}
+
+func (h *productsHandler) AddProduct(c *fiber.Ctx) error {
+	req := &products.Product{
+		Category: &appinfo.Category{},
+		Images:   make([]*entities.Images, 0),
+	}
+	if err := c.BodyParser(req); err != nil {
+		return entities.NewResponse(c).Error(
+			fiber.ErrBadRequest.Code,
+			string(insertProductsErr),
+			err.Error(),
+		).Res()
+	}
+
+	if req.Category.Id <= 0 {
+		return entities.NewResponse(c).Error(
+			fiber.ErrBadRequest.Code,
+			string(insertProductsErr),
+			"category id is invalid",
+		).Res()
+	}
+
+	if req.Price < 0 {
+		return entities.NewResponse(c).Error(
+			fiber.ErrBadRequest.Code,
+			string(insertProductsErr),
+			"price must be greater than 0",
+		).Res()
+	}
+
+	product, err := h.productsUsecase.AddProduct(req)
+	if err != nil {
+		return entities.NewResponse(c).Error(
+			fiber.ErrInternalServerError.Code,
+			string(insertProductsErr),
+			err.Error(),
+		).Res()
+	}
+	return entities.NewResponse(c).Success(fiber.StatusCreated, product).Res()
 }
