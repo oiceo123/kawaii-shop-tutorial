@@ -61,7 +61,7 @@ func (h *filesHandler) UploadFiles(c *fiber.Ctx) error {
 	}
 	for _, file := range filesReq {
 		ext := strings.TrimPrefix(filepath.Ext(file.Filename), ".")
-		if extMap[ext] != ext || extMap[ext] == "" {
+		if extMap[strings.ToLower(ext)] != strings.ToLower(ext) || extMap[strings.ToLower(ext)] == "" {
 			return entities.NewResponse(c).Error(
 				fiber.ErrBadRequest.Code,
 				string(uploadErr),
