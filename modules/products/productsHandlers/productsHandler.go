@@ -1,12 +1,14 @@
 package productsHandlers
 
 import (
+	"fmt"
 	"strings"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/oiceo123/kawaii-shop-tutorial/config"
 	"github.com/oiceo123/kawaii-shop-tutorial/modules/appinfo"
 	"github.com/oiceo123/kawaii-shop-tutorial/modules/entities"
+	"github.com/oiceo123/kawaii-shop-tutorial/modules/files"
 	"github.com/oiceo123/kawaii-shop-tutorial/modules/files/filesUsecases"
 	"github.com/oiceo123/kawaii-shop-tutorial/modules/products"
 	"github.com/oiceo123/kawaii-shop-tutorial/modules/products/productsUsecases"
@@ -19,6 +21,7 @@ const (
 	findProductsErr   productsHandlerErrCode = "product-002"
 	insertProductsErr productsHandlerErrCode = "product-003"
 	updateProductsErr productsHandlerErrCode = "product-004"
+	deleteProductsErr productsHandlerErrCode = "product-005"
 )
 
 type IProductsHandler interface {
@@ -26,6 +29,7 @@ type IProductsHandler interface {
 	FindProducts(c *fiber.Ctx) error
 	AddProduct(c *fiber.Ctx) error
 	UpdateProduct(c *fiber.Ctx) error
+	DeleteProduct(c *fiber.Ctx) error
 }
 
 type productsHandler struct {
@@ -151,4 +155,40 @@ func (h *productsHandler) UpdateProduct(c *fiber.Ctx) error {
 		).Res()
 	}
 	return entities.NewResponse(c).Success(fiber.StatusOK, product).Res()
+}
+
+func (h *productsHandler) DeleteProduct(c *fiber.Ctx) error {
+	productId := strings.Trim(c.Params("product_id"), " ")
+
+	product, err := h.productsUsecase.FindOneProduct(productId)
+	if err != nil {
+		return entities.NewResponse(c).Error(
+			fiber.ErrInternalServerError.Code,
+			string(deleteProductsErr),
+			err.Error(),
+		).Res()
+	}
+
+	deleteFileReq := make([]*files.DeleteFileReq, 0)
+	for _, p := range product.Images {
+		deleteFileReq = append(deleteFileReq, &files.DeleteFileReq{
+			Destination: fmt.Sprintf("images/products/%s", p.FileName),
+		})
+	}
+	if err := h.filesUsecase.DeleteFileOnGcp(deleteFileReq); err != nil {
+		return entities.NewResponse(c).Error(
+			fiber.ErrInternalServerError.Code,
+			string(deleteProductsErr),
+			err.Error(),
+		).Res()
+	}
+
+	if err := h.productsUsecase.DeleteProduct(productId); err != nil {
+		return entities.NewResponse(c).Error(
+			fiber.ErrInternalServerError.Code,
+			string(deleteProductsErr),
+			err.Error(),
+		).Res()
+	}
+	return entities.NewResponse(c).Success(fiber.StatusNoContent, nil).Res()
 }
