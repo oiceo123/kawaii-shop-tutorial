@@ -132,6 +132,6 @@ func (m *moduleFactory) OrdersModule() {
 	ordersHandler := ordersHandlers.OrdersHandler(m.server.cfg, ordersUsecase)
 
 	router := m.router.Group("/orders")
-	_ = ordersHandler
-	_ = router
+
+	router.Get("/:order_id", m.middlewares.JwtAuth(), ordersHandler.FindOneOrder)
 }
