@@ -11,6 +11,9 @@ import (
 	"github.com/oiceo123/kawaii-shop-tutorial/modules/middlewares/middlewaresRepositories"
 	"github.com/oiceo123/kawaii-shop-tutorial/modules/middlewares/middlewaresUsecases"
 	"github.com/oiceo123/kawaii-shop-tutorial/modules/monitor/monitorHandlers"
+	"github.com/oiceo123/kawaii-shop-tutorial/modules/orders/ordersHandlers"
+	"github.com/oiceo123/kawaii-shop-tutorial/modules/orders/ordersRepositories"
+	"github.com/oiceo123/kawaii-shop-tutorial/modules/orders/ordersUsecases"
 	"github.com/oiceo123/kawaii-shop-tutorial/modules/products/productsHandlers"
 	"github.com/oiceo123/kawaii-shop-tutorial/modules/products/productsRepositories"
 	"github.com/oiceo123/kawaii-shop-tutorial/modules/products/productsUsecases"
@@ -25,6 +28,7 @@ type IModuleFactory interface {
 	AppinfoModule()
 	FilesModule()
 	ProductsModule()
+	OrdersModule()
 }
 
 type moduleFactory struct {
@@ -116,4 +120,18 @@ func (m *moduleFactory) ProductsModule() {
 	router.Get("/:product_id", m.middlewares.ApiKeyAuth(), productsHandler.FindOneProduct)
 
 	router.Delete("/:product_id", m.middlewares.JwtAuth(), m.middlewares.Authorize(2), productsHandler.DeleteProduct)
+}
+
+func (m *moduleFactory) OrdersModule() {
+	fileUsecase := filesUsecases.FilesUsecase(m.server.cfg)
+
+	productsRepository := productsRepositories.ProductsRepository(m.server.db, m.server.cfg, fileUsecase)
+
+	ordersRepository := ordersRepositories.OrdersRepository(m.server.db)
+	ordersUsecase := ordersUsecases.OrdersUsecase(ordersRepository, productsRepository)
+	ordersHandler := ordersHandlers.OrdersHandler(m.server.cfg, ordersUsecase)
+
+	router := m.router.Group("/orders")
+	_ = ordersHandler
+	_ = router
 }
