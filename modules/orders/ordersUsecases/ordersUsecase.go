@@ -1,6 +1,7 @@
 package ordersUsecases
 
 import (
+	"fmt"
 	"math"
 
 	"github.com/oiceo123/kawaii-shop-tutorial/modules/entities"
@@ -12,6 +13,7 @@ import (
 type IOrdersUsecase interface {
 	FindOneOrder(orderId string) (*orders.Order, error)
 	FindOrder(req *orders.OrderFilter) *entities.PaginateRes
+	InsertOrder(req *orders.Order) (*orders.Order, error)
 }
 
 type ordersUsecase struct {
@@ -43,4 +45,34 @@ func (u *ordersUsecase) FindOrder(req *orders.OrderFilter) *entities.PaginateRes
 		TotalItem: count,
 		TotalPage: int(math.Ceil(float64(count) / float64(req.Limit))),
 	}
+}
+
+func (u *ordersUsecase) InsertOrder(req *orders.Order) (*orders.Order, error) {
+	// Check product is exists
+	for i := range req.Products {
+		if req.Products[i].Product == nil {
+			return nil, fmt.Errorf("product is nil")
+		}
+
+		product, err := u.productsRepository.FindOneProduct(req.Products[i].Product.Id)
+		if err != nil {
+			return nil, err
+		}
+
+		// Set price
+		req.TotalPaid += req.Products[i].Product.Price * float64(req.Products[i].Qty)
+		req.Products[i].Product = product
+	}
+
+	orderId, err := u.ordersRepository.InsertOrder(req)
+	if err != nil {
+		return nil, err
+	}
+
+	order, err := u.ordersRepository.FindOneOrder(orderId)
+	if err != nil {
+		return nil, err
+	}
+
+	return order, nil
 }
