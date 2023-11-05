@@ -6,10 +6,12 @@ import (
 
 	"github.com/jmoiron/sqlx"
 	"github.com/oiceo123/kawaii-shop-tutorial/modules/orders"
+	"github.com/oiceo123/kawaii-shop-tutorial/modules/orders/ordersPatterns"
 )
 
 type IOrdersRepository interface {
 	FindOneOrder(orderId string) (*orders.Order, error)
+	FindOrder(req *orders.OrderFilter) ([]*orders.Order, int)
 }
 
 type ordersRepository struct {
@@ -70,4 +72,10 @@ func (r *ordersRepository) FindOneOrder(orderId string) (*orders.Order, error) {
 	}
 
 	return orderData, nil
+}
+
+func (r *ordersRepository) FindOrder(req *orders.OrderFilter) ([]*orders.Order, int) {
+	builder := ordersPatterns.FindOrderBuilder(r.db, req)
+	engineer := ordersPatterns.FindOrderEngineer(builder)
+	return engineer.FindOrder(), engineer.CountOrder()
 }
