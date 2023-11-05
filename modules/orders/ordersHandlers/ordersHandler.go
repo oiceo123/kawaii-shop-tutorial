@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/gofiber/fiber/v2"
+	"github.com/google/uuid"
 	"github.com/oiceo123/kawaii-shop-tutorial/config"
 	"github.com/oiceo123/kawaii-shop-tutorial/modules/entities"
 	"github.com/oiceo123/kawaii-shop-tutorial/modules/orders"
@@ -17,12 +18,14 @@ const (
 	findOneOrderErr ordersHandlersErrCode = "orders-001"
 	findOrderErr    ordersHandlersErrCode = "orders-002"
 	insertOrderErr  ordersHandlersErrCode = "orders-003"
+	updateOrderErr  ordersHandlersErrCode = "orders-004"
 )
 
 type IOrdersHandler interface {
 	FindOneOrder(c *fiber.Ctx) error
 	FindOrder(c *fiber.Ctx) error
 	InsertOrder(c *fiber.Ctx) error
+	UpdateOrder(c *fiber.Ctx) error
 }
 
 type ordersHandler struct {
@@ -130,7 +133,7 @@ func (h *ordersHandler) InsertOrder(c *fiber.Ctx) error {
 	userId := c.Locals("userId").(string)
 
 	req := &orders.Order{
-		Products:     make([]*orders.ProductsOrder, 0),
+		Products: make([]*orders.ProductsOrder, 0),
 	}
 	if err := c.BodyParser(req); err != nil {
 		return entities.NewResponse(c).Error(
@@ -163,4 +166,60 @@ func (h *ordersHandler) InsertOrder(c *fiber.Ctx) error {
 	}
 
 	return entities.NewResponse(c).Success(fiber.StatusCreated, order).Res()
+}
+
+func (h *ordersHandler) UpdateOrder(c *fiber.Ctx) error {
+	orderId := strings.Trim(c.Params("order_id"), " ")
+	req := new(orders.Order)
+	if err := c.BodyParser(req); err != nil {
+		return entities.NewResponse(c).Error(
+			fiber.ErrBadRequest.Code,
+			string(updateOrderErr),
+			err.Error(),
+		).Res()
+	}
+	req.Id = orderId
+
+	statusMap := map[string]string{
+		"waiting":   "waiting",
+		"shipping":  "shipping",
+		"completed": "completed",
+		"canceled":  "canceled",
+	}
+	if c.Locals("userRoleId").(int) == 2 {
+		req.Status = statusMap[strings.ToLower(req.Status)]
+	} else if strings.ToLower(req.Status) == statusMap["canceled"] {
+		req.Status = statusMap["canceled"]
+	}
+
+	if req.TransferSlip != nil {
+		if req.TransferSlip.Id == "" {
+			req.TransferSlip.Id = uuid.NewString()
+		}
+		if req.TransferSlip.CreatedAt == "" {
+			loc, err := time.LoadLocation("Asia/Bangkok")
+			if err != nil {
+				return entities.NewResponse(c).Error(
+					fiber.ErrInternalServerError.Code,
+					string(updateOrderErr),
+					err.Error(),
+				).Res()
+			}
+			now := time.Now().In(loc)
+
+			// YYYY-MM-DD HH:MM:SS
+			// 2006-01-02 15:04:05
+			req.TransferSlip.CreatedAt = now.Format("2006-01-02 15:04:05")
+		}
+	}
+
+	order, err := h.ordersUsecase.UpdateOrder(req)
+	if err != nil {
+		return entities.NewResponse(c).Error(
+			fiber.ErrInternalServerError.Code,
+			string(updateOrderErr),
+			err.Error(),
+		).Res()
+	}
+	return entities.NewResponse(c).Success(fiber.StatusOK, order).Res()
 }

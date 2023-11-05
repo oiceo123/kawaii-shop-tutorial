@@ -137,4 +137,6 @@ func (m *moduleFactory) OrdersModule() {
 
 	router.Get("/", m.middlewares.JwtAuth(), m.middlewares.Authorize(2), ordersHandler.FindOrder)
 	router.Get("/:user_id/:order_id", m.middlewares.JwtAuth(), m.middlewares.ParamsCheck(), ordersHandler.FindOneOrder)
+
+	router.Patch("/:user_id/:order_id", m.middlewares.JwtAuth(), m.middlewares.ParamsCheck(), ordersHandler.UpdateOrder)
 }
