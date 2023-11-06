@@ -186,10 +186,20 @@ func (h *ordersHandler) UpdateOrder(c *fiber.Ctx) error {
 		"completed": "completed",
 		"canceled":  "canceled",
 	}
-	if c.Locals("userRoleId").(int) == 2 {
-		req.Status = statusMap[strings.ToLower(req.Status)]
-	} else if strings.ToLower(req.Status) == statusMap["canceled"] {
-		req.Status = statusMap["canceled"]
+	if req.Status != "" {
+		if c.Locals("userRoleId").(int) == 2 {
+			req.Status = statusMap[strings.ToLower(req.Status)]
+		} else if strings.ToLower(req.Status) == statusMap["canceled"] {
+			req.Status = statusMap["canceled"]
+		} else if strings.ToLower(req.Status) == statusMap["completed"] {
+			req.Status = statusMap["completed"]
+		} else {
+			return entities.NewResponse(c).Error(
+				fiber.ErrUnauthorized.Code,
+				string(updateOrderErr),
+				"unauthorized",
+			).Res()
+		}
 	}
 
 	if req.TransferSlip != nil {
@@ -211,6 +221,14 @@ func (h *ordersHandler) UpdateOrder(c *fiber.Ctx) error {
 			// 2006-01-02 15:04:05
 			req.TransferSlip.CreatedAt = now.Format("2006-01-02 15:04:05")
 		}
+	}
+
+	if req.TransferSlip == nil && req.Status == "" {
+		return entities.NewResponse(c).Error(
+			fiber.ErrBadRequest.Code,
+			string(updateOrderErr),
+			"required transfer slip or status ",
+		).Res()
 	}
 
 	order, err := h.ordersUsecase.UpdateOrder(req)
