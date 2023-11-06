@@ -114,7 +114,7 @@ func (h *usersHandler) SignUpAdmin(c *fiber.Ctx) error {
 	}
 
 	// Insert
-	result, err := h.usersUsecase.InsertCustomer(req)
+	result, err := h.usersUsecase.InsertAdmin(req)
 	if err != nil {
 		switch err.Error() {
 		case "username has been used":
