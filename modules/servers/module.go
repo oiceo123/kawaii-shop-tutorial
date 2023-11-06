@@ -68,7 +68,7 @@ func (m *moduleFactory) UsersModule() {
 	router.Post("/signin", m.middlewares.ApiKeyAuth(), handler.SignIn)
 	router.Post("/refresh", m.middlewares.ApiKeyAuth(), handler.RefreshPassport)
 	router.Post("/signout", m.middlewares.ApiKeyAuth(), handler.SignOut)
-	router.Post("/signup-admin", m.middlewares.JwtAuth(), m.middlewares.Authorize(2), handler.SignUpAdmin)
+	router.Post("/signup-admin", m.middlewares.JwtAuth(), m.middlewares.Authorize(2), m.middlewares.AdminAuth(), handler.SignUpAdmin)
 
 	router.Get("/:user_id", m.middlewares.JwtAuth(), m.middlewares.ParamsCheck(), handler.GetUserProfile)
 	router.Get("/admin/secret", m.middlewares.JwtAuth(), m.middlewares.Authorize(2), handler.GenerateAdminToken)

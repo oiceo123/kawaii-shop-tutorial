@@ -21,6 +21,7 @@ const (
 	paramsCheckErr middlewareHandlerErrCode = "middleware-003"
 	authorizeErr   middlewareHandlerErrCode = "middleware-004"
 	apiKeyErr      middlewareHandlerErrCode = "middleware-005"
+	adminAuthErr   middlewareHandlerErrCode = "middleware-006"
 )
 
 type IMiddlewaresHandler interface {
@@ -31,6 +32,7 @@ type IMiddlewaresHandler interface {
 	ParamsCheck() fiber.Handler
 	Authorize(expectRoleId ...int) fiber.Handler
 	ApiKeyAuth() fiber.Handler
+	AdminAuth() fiber.Handler
 }
 
 type middlewaresHandler struct {
@@ -172,6 +174,20 @@ func (h *middlewaresHandler) ApiKeyAuth() fiber.Handler {
 				fiber.ErrUnauthorized.Code,
 				string(apiKeyErr),
 				"apikey is invalid or required",
+			).Res()
+		}
+		return c.Next()
+	}
+}
+
+func (h *middlewaresHandler) AdminAuth() fiber.Handler {
+	return func(c *fiber.Ctx) error {
+		token := c.Get("X-Admin-Token")
+		if _, err := auth.ParseAdminToken(h.cfg.Jwt(), token); err != nil {
+			return entities.NewResponse(c).Error(
+				fiber.ErrUnauthorized.Code,
+				string(adminAuthErr),
+				"admin token is invalid or required",
 			).Res()
 		}
 		return c.Next()
