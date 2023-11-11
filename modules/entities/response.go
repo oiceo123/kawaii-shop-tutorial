@@ -33,7 +33,10 @@ func NewResponse(c *fiber.Ctx) IResponse {
 func (r *Response) Success(code int, data any) IResponse {
 	r.StatusCode = code
 	r.Data = data
-	logger.InitKawaiiLogger(r.Context, &r.Data, code).Print().Save()
+	// DEV
+	/* logger.InitKawaiiLogger(r.Context, &r.Data, code).Print().Save() */
+	// PROD
+	logger.InitKawaiiLogger(r.Context, &r.Data, code).Print()
 	return r
 }
 
@@ -44,7 +47,10 @@ func (r *Response) Error(code int, traceId, msg string) IResponse {
 		Msg:     msg,
 	}
 	r.IsError = true
-	logger.InitKawaiiLogger(r.Context, &r.ErrorRes, code).Print().Save()
+	// DEV
+	/* logger.InitKawaiiLogger(r.Context, &r.ErrorRes, code).Print().Save() */
+	// PROD
+	logger.InitKawaiiLogger(r.Context, &r.ErrorRes, code).Print()
 	return r
 }
 
