@@ -52,33 +52,33 @@ gcloud config configurations list
 
 <img alt="schema" src="./screenshots/schema.png"/>
 
-<h2>🐋 Pull PostgreSQL from Docker</h2>
+<h2>Pull PostgreSQL from Docker</h2>
 
 ```bash
 docker pull postgres:alpine
 ```
 
-<h2>🐋 Start PostgreSQL on Docker</h2>
+<h2>Start PostgreSQL on Docker</h2>
 
 ```bash
 docker run --name kawaii_db_test -e POSTGRES_USER=kawaii -e POSTGRES_PASSWORD=123456 -e TZ=Asia/Bangkok -p 4444:5432 -d postgres:alpine
 ```
 
-<h2>🐋 Execute a container</h2>
+<h2>Execute a container</h2>
 
 ```bash
 docker exec -it kawaii_db_test bash
 psql -U kawaii
 ```
 
-<h2>✏️ Create a new database</h2>
+<h2>Create a new database</h2>
 
 ```bash
 CREATE DATABASE kawaii_db_test;
 \l
 ```
 
-<h2>💣 Remove a database</h2>
+<h2>Remove a database</h2>
 <p>If the migration fails, delete the database and then create a new one and migrate again.</p>
 
 ```bash
@@ -86,7 +86,7 @@ DROP DATABASE kawaii_db_test;
 \l
 ```
 
-<h2>📝 Migration</h2>
+<h2>Migration</h2>
 
 ```bash
 # Migrate up
